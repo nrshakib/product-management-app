@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSelector, useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
-import { logout } from "@/redux/auth/authSlice";
+import { logout } from "@/redux/slices/authSlice";
 import { Button } from "@mui/material";
 
 export default function Navbar() {
