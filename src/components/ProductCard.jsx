@@ -67,7 +67,7 @@ export default function ProductCard({ product, onDelete }) {
               color: "#072e81",
               ":hover": { backgroundColor: "#e3f2fd", borderColor: "#0a66c2" },
             }}
-            onClick={() => (window.location.href = `/products/${product.id}`)}
+            onClick={() => (window.location.href = `/products/${product.slug}`)}
           >
             View
           </Button>
