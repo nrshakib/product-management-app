@@ -6,8 +6,11 @@ import axios from "axios";
  */
 const api = (token) =>
   axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
-    headers: { Authorization: `Bearer ${token}` },
+    baseURL: process.env.NEXT_PUBLIC_API_URL,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
   });
 
 /**
@@ -15,19 +18,28 @@ const api = (token) =>
  */
 export const fetchProducts = createAsyncThunk(
   "products/fetchAll",
-  async ({ page = 1, search = "" }, { getState, rejectWithValue }) => {
+  async (
+    { page = 1, search = "", limit = 10 } = {},
+    { getState, rejectWithValue }
+  ) => {
     try {
       const token = getState().auth.token;
       if (!token) return rejectWithValue("Unauthorized: Missing token");
 
+      const offset = (page - 1) * limit;
+
       const response = await api(token).get("/products", {
-        params: { page, search },
+        params: { offset, limit, search },
       });
-      return response.data; // expected: { products, totalPages }
+
+      console.log("Fetch products response:", response.data);
+      return response.data; // expected: { products, totalPages } or array
     } catch (err) {
-      console.error("Fetch error:", err);
+      console.error("Fetch products error:", err);
       return rejectWithValue(
-        err.response?.data?.message || "Failed to fetch products"
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          "Failed to fetch products"
       );
     }
   }
@@ -41,10 +53,18 @@ export const fetchProductById = createAsyncThunk(
   async (id, { getState, rejectWithValue }) => {
     try {
       const token = getState().auth.token;
+      if (!token) return rejectWithValue("Unauthorized: Missing token");
+
       const response = await api(token).get(`/products/${id}`);
+      console.log("Fetch product by ID response:", response.data);
       return response.data;
     } catch (err) {
-      return rejectWithValue(err.response?.data || "Failed to fetch product");
+      console.error("Fetch product by ID error:", err);
+      return rejectWithValue(
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          "Failed to fetch product"
+      );
     }
   }
 );
@@ -57,11 +77,17 @@ export const createProduct = createAsyncThunk(
   async (productData, { getState, rejectWithValue }) => {
     try {
       const token = getState().auth.token;
+      if (!token) return rejectWithValue("Unauthorized: Missing token");
+
       const response = await api(token).post("/products", productData);
+      console.log("Create product response:", response.data);
       return response.data;
     } catch (err) {
+      console.error("Create product error:", err);
       return rejectWithValue(
-        err.response?.data?.message || "Failed to create product"
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          "Failed to create product"
       );
     }
   }
@@ -75,11 +101,17 @@ export const updateProduct = createAsyncThunk(
   async ({ id, data }, { getState, rejectWithValue }) => {
     try {
       const token = getState().auth.token;
+      if (!token) return rejectWithValue("Unauthorized: Missing token");
+
       const response = await api(token).put(`/products/${id}`, data);
+      console.log("Update product response:", response.data);
       return response.data;
     } catch (err) {
+      console.error("Update product error:", err);
       return rejectWithValue(
-        err.response?.data?.message || "Failed to update product"
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          "Failed to update product"
       );
     }
   }
@@ -93,11 +125,17 @@ export const deleteProduct = createAsyncThunk(
   async (id, { getState, rejectWithValue }) => {
     try {
       const token = getState().auth.token;
+      if (!token) return rejectWithValue("Unauthorized: Missing token");
+
       await api(token).delete(`/products/${id}`);
+      console.log("Delete product success:", id);
       return id;
     } catch (err) {
+      console.error("Delete product error:", err);
       return rejectWithValue(
-        err.response?.data?.message || "Failed to delete product"
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          "Failed to delete product"
       );
     }
   }
@@ -124,6 +162,13 @@ const productsSlice = createSlice({
   reducers: {
     clearCurrentProduct: (state) => {
       state.currentProduct = null;
+      state.error = null;
+    },
+    setPage: (state, action) => {
+      state.page = action.payload;
+    },
+    clearError: (state) => {
+      state.error = null;
     },
   },
   extraReducers: (builder) => {
@@ -135,15 +180,30 @@ const productsSlice = createSlice({
       })
       .addCase(fetchProducts.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.items = action.payload.products || [];
-        state.totalPages = action.payload.totalPages || 1;
+        state.error = null;
+
+        const payload = action.payload;
+
+        if (Array.isArray(payload)) {
+          state.items = payload;
+          state.totalPages = 1;
+        } else {
+          const limit = 10;
+          const products = payload.products || payload.data || [];
+          const totalCount =
+            payload.totalCount || payload.total_count || products.length;
+
+          state.items = products;
+          state.totalPages = Math.ceil(totalCount / limit);
+        }
+        state.error = null;
       })
       .addCase(fetchProducts.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload;
+        state.items = [];
       })
 
-      // ====== Fetch One ======
       .addCase(fetchProductById.pending, (state) => {
         state.status = "loading";
         state.error = null;
@@ -151,10 +211,12 @@ const productsSlice = createSlice({
       .addCase(fetchProductById.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.currentProduct = action.payload;
+        state.error = null;
       })
       .addCase(fetchProductById.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload;
+        state.currentProduct = null;
       })
 
       // ====== Create ======
@@ -164,7 +226,8 @@ const productsSlice = createSlice({
       })
       .addCase(createProduct.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.items.unshift(action.payload); // optimistic insert
+        state.items.unshift(action.payload); // Add to beginning
+        state.error = null;
       })
       .addCase(createProduct.rejected, (state, action) => {
         state.status = "failed";
@@ -172,10 +235,21 @@ const productsSlice = createSlice({
       })
 
       // ====== Update ======
+      .addCase(updateProduct.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
       .addCase(updateProduct.fulfilled, (state, action) => {
         state.status = "succeeded";
         const idx = state.items.findIndex((p) => p.id === action.payload.id);
-        if (idx >= 0) state.items[idx] = action.payload;
+        if (idx >= 0) {
+          state.items[idx] = action.payload;
+        }
+        // Update currentProduct if it's the same one
+        if (state.currentProduct?.id === action.payload.id) {
+          state.currentProduct = action.payload;
+        }
+        state.error = null;
       })
       .addCase(updateProduct.rejected, (state, action) => {
         state.status = "failed";
@@ -183,8 +257,18 @@ const productsSlice = createSlice({
       })
 
       // ====== Delete ======
+      .addCase(deleteProduct.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
       .addCase(deleteProduct.fulfilled, (state, action) => {
+        state.status = "succeeded";
         state.items = state.items.filter((p) => p.id !== action.payload);
+        // Clear currentProduct if it was deleted
+        if (state.currentProduct?.id === action.payload) {
+          state.currentProduct = null;
+        }
+        state.error = null;
       })
       .addCase(deleteProduct.rejected, (state, action) => {
         state.status = "failed";
@@ -193,5 +277,6 @@ const productsSlice = createSlice({
   },
 });
 
-export const { clearCurrentProduct } = productsSlice.actions;
+export const { clearCurrentProduct, setPage, clearError } =
+  productsSlice.actions;
 export default productsSlice.reducer;

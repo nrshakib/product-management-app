@@ -27,8 +27,8 @@ export const login = createAsyncThunk(
 );
 
 const initialState = {
-  token: null,
-  email: null,
+  token: typeof window !== "undefined" ? sessionStorage.getItem("token") : null,
+  email: typeof window !== "undefined" ? sessionStorage.getItem("email") : null,
   status: "idle",
   error: null,
 };
@@ -42,6 +42,11 @@ const authSlice = createSlice({
       state.email = null;
       state.status = "idle";
       state.error = null;
+
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("token");
+        sessionStorage.removeItem("email");
+      }
     },
   },
   extraReducers: (builder) => {
@@ -55,6 +60,11 @@ const authSlice = createSlice({
         state.token = action.payload.token;
         state.email = action.payload.email;
         state.error = null;
+
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("token", action.payload.token);
+          sessionStorage.setItem("email", action.payload.email);
+        }
       })
       .addCase(login.rejected, (state, action) => {
         state.status = "failed";

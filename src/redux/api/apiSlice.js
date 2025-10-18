@@ -10,20 +10,26 @@ export const apiSlices = createApi({
   endpoints: (builder) => ({
     // Login endpoint (no auth needed)
     login: builder.mutation({
-      query: (email) => ({
-        url: "/auth",
-        method: "POST",
-        data: { email },
-      }),
+      query: (email) => {
+        console.log("log in email", email);
+        return {
+          url: "/auth",
+          method: "POST",
+          data: { email },
+        };
+      },
       invalidatesTags: ["Auth"],
     }),
 
     // Get products (auth required - token added automatically)
     getProducts: builder.query({
-      query: () => ({
-        url: "/products",
-        method: "GET",
-      }),
+      query: () => {
+        console.log(fff);
+        return {
+          url: "/products",
+          method: "GET",
+        };
+      },
       providesTags: ["Products"],
     }),
 

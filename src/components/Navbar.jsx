@@ -34,7 +34,6 @@ export default function Navbar() {
   return (
     <nav className="bg-green-100 shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-6 py-3 flex items-center justify-between">
-      
         <Link href="/" className="sm:text-2xl font-semibold text-[#072e81]">
           Product Management App
         </Link>
@@ -54,7 +53,7 @@ export default function Navbar() {
               Products
             </Button>
           </Link>
-          <Link href="/products/create">
+          {/* <Link href="/products/create">
             <Button
               sx={{
                 textTransform: "none",
@@ -66,14 +65,14 @@ export default function Navbar() {
             >
               Create
             </Button>
-          </Link>
+          </Link> */}
         </div>
 
         {/* Right side (desktop): user + logout */}
         <div className="hidden md:flex items-center space-x-4">
           {token ? (
             <>
-              <span className="text-gray-600 text-sm">{email}</span>
+              <p className="text-gray-600 text-sm">{email}</p>
               <Button
                 sx={{
                   textTransform: "none",
@@ -139,14 +138,14 @@ export default function Navbar() {
             >
               <ListItemText primary="Products" />
             </ListItem>
-            <ListItem
+            {/* <ListItem
               button
               component={Link}
               href="/products/create"
               onClick={toggleDrawer(false)}
             >
               <ListItemText primary="Create Product" />
-            </ListItem>
+            </ListItem> */}
             <Divider />
             {token ? (
               <>

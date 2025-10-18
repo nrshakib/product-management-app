@@ -29,13 +29,16 @@ export default function ProductsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [mounted, setMounted] = useState(false);
 
-  // Redirect if not authenticated
   useEffect(() => {
     if (!token) router.push("/login");
   }, [token, router]);
 
-  // Fetch products when page/search changes
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (token) dispatch(fetchProducts({ page, search }));
   }, [dispatch, page, search, token]);
@@ -104,7 +107,7 @@ export default function ProductsPage() {
             ) : (
               <motion.div
                 layout
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
               >
                 {items.map((product) => (
                   <motion.div
