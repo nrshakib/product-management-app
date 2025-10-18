@@ -1,6 +1,7 @@
 import { Providers } from "@/utils/providers";
 import "../styles/globals.css";
 import Navbar from "@/components/Navbar";
+import { Toaster } from "sonner";
 
 export const metadata = {
   title: "Product Management App",
@@ -10,8 +11,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>
+      <body suppressHydrationWarning>
         <Providers>
+          <Toaster richColors position="top-right" />
           <Navbar />
           <main>{children}</main>
         </Providers>

@@ -1,28 +1,38 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
-// Async thunk for login
 export const login = createAsyncThunk(
   "auth/login",
   async (email, { rejectWithValue }) => {
     try {
-      const response = await axios.post("/auth", { email });
-      return { token: response.data.token, email };
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/auth`,
+        { email }
+      );
+      console.log("Login response:", response.data);
+      if (response.status == 200) {
+        return { token: response.data.token, email };
+      }
     } catch (err) {
-      return rejectWithValue(err.response?.data || "Login failed");
+      console.error("Login error:", err);
+      // Return a readable error message
+      const message =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        "Login failed";
+      return rejectWithValue(message);
     }
   }
 );
 
-// Initial state
 const initialState = {
   token: null,
   email: null,
-  status: "idle", // 'idle' | 'loading' | 'succeeded' | 'failed'
+  status: "idle",
   error: null,
 };
 
-// Auth slice
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -44,6 +54,7 @@ const authSlice = createSlice({
         state.status = "succeeded";
         state.token = action.payload.token;
         state.email = action.payload.email;
+        state.error = null;
       })
       .addCase(login.rejected, (state, action) => {
         state.status = "failed";
@@ -52,6 +63,5 @@ const authSlice = createSlice({
   },
 });
 
-// Export actions & reducer
 export const { logout } = authSlice.actions;
 export default authSlice.reducer;

@@ -9,7 +9,9 @@ import TextField from "@mui/material/TextField";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import CircularProgress from "@mui/material/CircularProgress";
+import Alert from "@mui/material/Alert";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const dispatch = useDispatch();
@@ -20,8 +22,11 @@ export default function LoginPage() {
 
   const { token, status, error } = useSelector((state) => state.auth);
 
+  // Redirect if already logged in
   useEffect(() => {
-    if (token) router.push("/products");
+    if (token) {
+      router.push("/products");
+    }
   }, [token, router]);
 
   const handleLogin = async (e) => {
@@ -29,7 +34,7 @@ export default function LoginPage() {
     setLocalError("");
 
     // Client-side validation
-    if (!email) {
+    if (!email.trim()) {
       setLocalError("Email is required");
       return;
     }
@@ -38,55 +43,88 @@ export default function LoginPage() {
       return;
     }
 
-    await dispatch(login(email));
+    try {
+      const result = await dispatch(login(email)).unwrap();
+      console.log("Login successful:", result);
+      if (result.email && result.token) {
+        toast.success("Login successful!");
+        return { token: response.data.token, email };
+      }
+    } catch (err) {
+      console.error("Login failed:", err);
+      // Error will be shown from Redux state
+    }
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-100 px-4 shadow-xl">
+    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100 px-4">
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="w-full max-w-md"
       >
-        <Card sx={{ maxWidth: 600, width: "100%", p: 2, borderRadius: 3 }}>
+        <Card
+          sx={{
+            p: 2,
+            borderRadius: 3,
+            boxShadow: "0 10px 40px rgba(0,0,0,0.1)",
+          }}
+        >
           <CardContent>
-            <h1 className="text-2xl font-bold text-gray-900 mb-4 text-center">
-              Login
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center">
+              Welcome Back
             </h1>
+            <p className="text-gray-600 text-center mb-6">
+              Sign in to access your products
+            </p>
+
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
               <TextField
-                label="Email"
+                label="Email Address"
                 type="email"
                 variant="outlined"
-                size="small"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 fullWidth
                 required
                 disabled={status === "loading"}
+                autoComplete="email"
+                autoFocus
               />
+
               {(localError || error) && (
-                <p className="text-red-500 text-sm">
-                  {localError || error?.message || "Login failed"}
-                </p>
+                <Alert severity="error" sx={{ borderRadius: 2 }}>
+                  {localError ||
+                    (typeof error === "string"
+                      ? error
+                      : error?.message || "Login failed. Please try again.")}
+                </Alert>
               )}
+
               <Button
                 type="submit"
                 variant="contained"
-                color="primary"
                 disabled={status === "loading"}
+                fullWidth
                 sx={{
                   py: 1.5,
                   textTransform: "none",
                   fontWeight: 600,
+                  fontSize: "1rem",
                   bgcolor: "#072e81",
+                  borderRadius: 2,
                   ":hover": { bgcolor: "#0a66c2" },
+                  ":disabled": { bgcolor: "#e0e0e0" },
                 }}
               >
                 {status === "loading" ? (
-                  <CircularProgress size={24} color="inherit" />
+                  <div className="flex items-center gap-2">
+                    <CircularProgress size={20} color="inherit" />
+                    <span>Signing in...</span>
+                  </div>
                 ) : (
-                  "Login"
+                  "Sign In"
                 )}
               </Button>
             </form>
