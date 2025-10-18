@@ -66,7 +66,7 @@ export default function ProductsPage() {
               textTransform: "none",
               ":hover": { bgcolor: "#0a66c2" },
             }}
-            onClick={() => router.push("/products/create")}
+            onClick={() => router.push("/products/create-product")}
           >
             + Create Product
           </Button>
