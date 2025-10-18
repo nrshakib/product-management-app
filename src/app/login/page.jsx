@@ -1,86 +1,98 @@
 "use client";
 
-import { useState } from "react";
-import { useDispatch } from "react-redux";
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
+import { login } from "@/redux/slices/authSlice";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
-import axios from "axios";
+import CircularProgress from "@mui/material/CircularProgress";
+import { motion } from "framer-motion";
 
 export default function LoginPage() {
   const dispatch = useDispatch();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [localError, setLocalError] = useState("");
+
+  const { token, status, error } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (token) router.push("/products");
+  }, [token, router]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
+    setLocalError("");
 
-    // Simple client-side validation
+    // Client-side validation
     if (!email) {
-      setError("Email is required");
+      setLocalError("Email is required");
       return;
     }
     if (!/\S+@\S+\.\S+/.test(email)) {
-      setError("Invalid email format");
+      setLocalError("Invalid email format");
       return;
     }
 
-    setLoading(true);
-    try {
-      const response = await axios.post("/auth", { email });
-      const { token } = response.data;
-
-      // Save token in Redux
-      dispatch(setToken(token));
-
-      // Redirect to products page
-      router.push("/products");
-    } catch (err) {
-      console.error(err);
-      setError("Login failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    await dispatch(login(email));
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <Card sx={{ maxWidth: 400, width: "100%", p: 2, borderRadius: 3 }}>
-        <CardContent>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4 text-center">
-            Login
-          </h1>
-          <form onSubmit={handleLogin} className="flex flex-col gap-4">
-            <TextField
-              label="Email"
-              type="email"
-              variant="outlined"
-              size="small"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              fullWidth
-              required
-            />
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              disabled={loading}
-              sx={{ py: 1.5 }}
-            >
-              {loading ? "Logging in..." : "Login"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen w-full flex items-center justify-center bg-gray-100 px-4 shadow-xl">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Card sx={{ maxWidth: 600, width: "100%", p: 2, borderRadius: 3 }}>
+          <CardContent>
+            <h1 className="text-2xl font-bold text-gray-900 mb-4 text-center">
+              Login
+            </h1>
+            <form onSubmit={handleLogin} className="flex flex-col gap-4">
+              <TextField
+                label="Email"
+                type="email"
+                variant="outlined"
+                size="small"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                fullWidth
+                required
+                disabled={status === "loading"}
+              />
+              {(localError || error) && (
+                <p className="text-red-500 text-sm">
+                  {localError || error?.message || "Login failed"}
+                </p>
+              )}
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                disabled={status === "loading"}
+                sx={{
+                  py: 1.5,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  bgcolor: "#072e81",
+                  ":hover": { bgcolor: "#0a66c2" },
+                }}
+              >
+                {status === "loading" ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  "Login"
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }
